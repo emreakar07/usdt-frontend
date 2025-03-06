@@ -4,8 +4,8 @@
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
-        "installCommand": "npm install --legacy-peer-deps --force",
-        "buildCommand": "npm run build"
+        "installCommand": "yarn install --frozen-lockfile",
+        "buildCommand": "yarn build"
       }
     }
   ],
