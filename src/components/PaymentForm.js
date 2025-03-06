@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ethers } from 'ethers';
 import axios from 'axios';
-import { useAccount, useSigner } from 'wagmi';
+import { useSigner } from 'wagmi';
 
 // USDT Contract ABI (only the functions we need)
 const USDT_ABI = [

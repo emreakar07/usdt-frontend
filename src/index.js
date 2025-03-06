@@ -4,7 +4,6 @@ import App from './App';
 import { Web3Modal } from '@web3modal/react';
 import { EthereumClient } from '@web3modal/ethereum';
 import { WagmiConfig, createClient, configureChains, mainnet } from 'wagmi';
-import { infuraProvider } from 'wagmi/providers/infura';
 import { publicProvider } from 'wagmi/providers/public';
 import { MetaMaskConnector } from 'wagmi/connectors/metaMask';
 import { WalletConnectConnector } from 'wagmi/connectors/walletConnect';
