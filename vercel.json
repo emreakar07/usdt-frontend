@@ -4,7 +4,7 @@
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
-        "installCommand": "yarn install --frozen-lockfile",
+        "installCommand": "yarn install --ignore-engines",
         "buildCommand": "yarn build"
       }
     }
