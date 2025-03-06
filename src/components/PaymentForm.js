@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ethers } from 'ethers';
 import axios from 'axios';
-import { useAccount, useWalletClient } from 'wagmi';
+import { useAccount, useSigner } from 'wagmi';
 
 // USDT Contract ABI (only the functions we need)
 const USDT_ABI = [
@@ -41,7 +41,7 @@ const PaymentForm = ({ walletAddress, onPaymentSuccess }) => {
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { data: walletClient } = useWalletClient();
+  const { data: signer } = useSigner();
 
   const handleAmountChange = (e) => {
     setAmount(e.target.value);
@@ -58,15 +58,9 @@ const PaymentForm = ({ walletAddress, onPaymentSuccess }) => {
         throw new Error('Please enter a valid amount');
       }
 
-      if (!walletClient) {
+      if (!signer) {
         throw new Error('Wallet not connected properly');
       }
-      
-      // Create a provider from the wallet client
-      const provider = new ethers.providers.Web3Provider({
-        request: walletClient.request.bind(walletClient),
-      });
-      const signer = provider.getSigner();
       
       // Create USDT contract instance
       const usdtContract = new ethers.Contract(
