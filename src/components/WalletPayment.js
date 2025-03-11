@@ -90,13 +90,50 @@ const walletConnectConnector = new WalletConnectConnector({
     projectId: '40a5ee6300013fda8e17bf84e3c21e37',
     showQrModal: true,
     qrModalOptions: {
-      themeMode: "light"
+      themeMode: "light",
+      desktopWallets: [],
+      mobileWallets: [
+        {
+          id: 'trust',
+          name: 'Trust Wallet',
+          links: {
+            native: 'trust://',
+            universal: 'https://link.trustwallet.com'
+          }
+        },
+        {
+          id: 'metamask',
+          name: 'MetaMask',
+          links: {
+            native: 'metamask://',
+            universal: 'https://metamask.app.link'
+          }
+        },
+        {
+          id: 'binance',
+          name: 'Binance Wallet',
+          links: {
+            native: 'bnb://',
+            universal: 'https://www.bnbchain.org/en/wallet-direct'
+          }
+        }
+      ]
     }
-  },
+  }
 });
 
 // Desteklenen cüzdanlar
 const SUPPORTED_WALLETS = [
+  {
+    id: 'metamask',
+    name: 'MetaMask',
+    icon: '/metamask-logo.svg',
+    connector: walletConnectConnector,
+    type: 'both',
+    chains: ['eth', 'bsc'],
+    checkAvailability: async () => true,
+    walletUrl: 'https://metamask.io/download'
+  },
   {
     id: 'trust',
     name: 'Trust Wallet',
@@ -112,7 +149,7 @@ const SUPPORTED_WALLETS = [
     name: 'Binance Wallet',
     icon: '/binance-logo.svg',
     connector: walletConnectConnector,
-    type: 'mobile',
+    type: 'both',
     chains: ['eth', 'bsc'],
     checkAvailability: async () => true,
     walletUrl: 'https://www.binance.com/en/wallet-direct'
@@ -346,20 +383,39 @@ function PaymentApp() {
     }
   }, [chain, selectedChainId]);
 
-  // Cüzdan bağlantısı
-  const connectWallet = async (wallet) => {
+  // Cüzdan bağlantı fonksiyonu
+  const handleWalletConnect = async (wallet) => {
     try {
       setSelectedWallet(wallet);
-      setPaymentStep(1);
-      await connect({ connector: wallet.connector });
+      setLoading(true);
+
+      // Mobil cihaz kontrolü
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+      if (isMobile && wallet.type === 'mobile') {
+        // Mobil cihazda doğrudan WalletConnect QR modunu göster
+        await connect({ connector: wallet.connector });
+      } else {
+        // Desktop veya universal bağlantı
+        if (wallet.id === 'metamask' && window.ethereum) {
+          await connect({ connector: new MetaMaskConnector({ chains }) });
+        } else {
+          await connect({ connector: wallet.connector });
+        }
+      }
+
+      setPaymentStep(1); // Başarılı bağlantıdan sonra bir sonraki adıma geç
     } catch (error) {
+      console.error('Wallet connection error:', error);
       toast({
         title: 'Bağlantı Hatası',
-        description: error.message,
+        description: 'Cüzdan bağlantısı sırasında bir hata oluştu. Lütfen tekrar deneyin.',
         status: 'error',
         duration: 5000,
         isClosable: true,
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -523,7 +579,7 @@ function PaymentApp() {
             
             <VStack align="stretch" spacing={4}>
               <Button
-                onClick={() => connectWallet({ 
+                onClick={() => handleWalletConnect({ 
                   connector: walletConnectConnector,
                   id: 'walletconnect'
                 })}
