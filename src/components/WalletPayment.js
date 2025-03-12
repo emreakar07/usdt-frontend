@@ -89,35 +89,17 @@ const walletConnectConnector = new WalletConnectConnector({
   options: {
     projectId: '40a5ee6300013fda8e17bf84e3c21e37',
     showQrModal: true,
+    metadata: {
+      name: 'USDT Payment',
+      description: 'USDT Payment System',
+      url: window.location.origin,
+      icons: [`${window.location.origin}/walletconnect-logo.svg`]
+    },
     qrModalOptions: {
       themeMode: "light",
-      desktopWallets: [],
-      mobileWallets: [
-        {
-          id: 'trust',
-          name: 'Trust Wallet',
-          links: {
-            native: 'trust://',
-            universal: 'https://link.trustwallet.com'
-          }
-        },
-        {
-          id: 'metamask',
-          name: 'MetaMask',
-          links: {
-            native: 'metamask://',
-            universal: 'https://metamask.app.link'
-          }
-        },
-        {
-          id: 'binance',
-          name: 'Binance Wallet',
-          links: {
-            native: 'bnb://',
-            universal: 'https://www.bnbchain.org/en/wallet-direct'
-          }
-        }
-      ]
+      explorerRecommendedWalletIds: ['c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96', 'ecc4036f814562b41a5268adc86270fba1365471402006302e70169465b7ac18', '4622a2b2d6af1c9844944291e5e7351a6aa24cd7b23099efac1b2fd875da31a0'],
+      enableExplorer: true,
+      explorerExcludedWalletIds: []
     }
   }
 });
@@ -158,8 +140,11 @@ const SUPPORTED_WALLETS = [
 
 // Wagmi client
 const wagmiClient = createClient({
-  autoConnect: false,
-  connectors: [walletConnectConnector],
+  autoConnect: true,
+  connectors: [
+    walletConnectConnector,
+    new MetaMaskConnector({ chains })
+  ],
   provider
 });
 
@@ -391,19 +376,13 @@ function PaymentApp() {
       // Mobil cihaz kontrolü
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-      if (isMobile && wallet.type === 'mobile') {
-        // Mobil cihazda doğrudan WalletConnect QR modunu göster
-        await connect({ connector: wallet.connector });
-      } else {
-        // Desktop veya universal bağlantı
-        if (wallet.id === 'metamask' && window.ethereum) {
-          await connect({ connector: new MetaMaskConnector({ chains }) });
-        } else {
-          await connect({ connector: wallet.connector });
-        }
-      }
+      // WalletConnect ile bağlan
+      await connect({ 
+        connector: walletConnectConnector,
+        chainId: isMobile ? undefined : (recommendedChain === 'bsc' ? 56 : 1)
+      });
 
-      setPaymentStep(2); // Ağ seçimi adımını atlayıp direkt ödeme adımına geç
+      setPaymentStep(1); // Bir sonraki adıma geç
     } catch (error) {
       console.error('Wallet connection error:', error);
       toast({
@@ -445,7 +424,7 @@ function PaymentApp() {
       const receipt = await tx.wait();
 
       // Backend'e bildir
-      const response = await fetch('/api/verify-payment', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/verify-payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -559,13 +538,12 @@ function PaymentApp() {
             
             <VStack align="stretch" spacing={4}>
               <Button
-                onClick={() => handleWalletConnect({ 
-                  connector: walletConnectConnector,
-                  id: 'walletconnect'
-                })}
+                onClick={() => handleWalletConnect({ id: 'walletconnect' })}
                 height="60px"
                 variant="outline"
                 colorScheme="blue"
+                isLoading={loading}
+                loadingText="QR Kodu Hazırlanıyor..."
               >
                 <VStack spacing={2}>
                   <Image
@@ -582,7 +560,7 @@ function PaymentApp() {
         )}
 
         {/* Ödeme butonu */}
-        {isConnected && (
+        {isConnected && paymentStep >= 1 && (
           <Button
             colorScheme="blue"
             size="lg"
