@@ -215,7 +215,6 @@ function PaymentApp() {
   // Ödeme adımları
   const PAYMENT_STEPS = [
     { title: 'Cüzdan Bağlantısı', description: 'Cüzdanınızı bağlayın' },
-    { title: 'Ağ Seçimi', description: 'Ödeme yapacağınız ağı seçin' },
     { title: 'Ödeme', description: 'Ödemeyi onaylayın' }
   ];
 
@@ -404,7 +403,7 @@ function PaymentApp() {
         }
       }
 
-      setPaymentStep(1); // Başarılı bağlantıdan sonra bir sonraki adıma geç
+      setPaymentStep(2); // Ağ seçimi adımını atlayıp direkt ödeme adımına geç
     } catch (error) {
       console.error('Wallet connection error:', error);
       toast({
@@ -416,25 +415,6 @@ function PaymentApp() {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Ağ değiştirme
-  const handleNetworkSwitch = async (chainId) => {
-    try {
-      setSelectedChainId(chainId);
-      if (switchNetwork) {
-        await switchNetwork(chainId);
-        setPaymentStep(2);
-      }
-    } catch (error) {
-      toast({
-        title: 'Ağ Değiştirme Hatası',
-        description: error.message,
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
     }
   };
 
@@ -601,102 +581,8 @@ function PaymentApp() {
           </>
         )}
 
-        {/* Ağ seçimi */}
-        {isConnected && paymentStep === 1 && (
-          <VStack align="stretch" spacing={4}>
-            <Text fontWeight="medium">Ağ Seçin:</Text>
-            
-            {/* Gas ücretleri bilgisi */}
-            {Object.entries(gasEstimates).length > 0 && (
-              <Alert status="info" borderRadius="md">
-                <VStack align="stretch" width="100%">
-                  <AlertTitle>Tahmini İşlem Ücretleri:</AlertTitle>
-                  <AlertDescription>
-                    <VStack align="stretch" spacing={2}>
-                      {Object.entries(gasEstimates).map(([network, estimate]) => (
-                        <HStack key={network} justify="space-between">
-                          <Text>{SUPPORTED_CHAINS[network].name}:</Text>
-                          <Text>~${estimate.estimatedCost.toFixed(2)}</Text>
-                        </HStack>
-                      ))}
-                    </VStack>
-                  </AlertDescription>
-                  {recommendedChain && (
-                    <Box mt={2} p={2} bg="green.50" borderRadius="md">
-                      <HStack>
-                        <Icon as={CheckCircleIcon} color="green.500" />
-                        <Text color="green.700">
-                          Önerilen Ağ: {SUPPORTED_CHAINS[recommendedChain].name} (En düşük işlem ücreti)
-                        </Text>
-                      </HStack>
-                    </Box>
-                  )}
-                </VStack>
-              </Alert>
-            )}
-
-            <SimpleGrid columns={{ base: 2, md: 3 }} spacing={4}>
-              {Object.values(SUPPORTED_CHAINS).map((chainData) => (
-                <Button
-                  key={chainData.id}
-                  onClick={() => handleNetworkSwitch(chainData.id)}
-                  height="60px"
-                  variant={chain?.id === chainData.id ? 'solid' : 'outline'}
-                  colorScheme={chain?.id === chainData.id ? 'blue' : recommendedChain === chainData.id ? 'green' : 'gray'}
-                  position="relative"
-                >
-                  <VStack spacing={2}>
-                    <Image
-                      src={chainData.icon}
-                      alt={chainData.name}
-                      boxSize="24px"
-                      fallback={<Icon as={ExternalLinkIcon} />}
-                    />
-                    <Text fontSize="sm">{chainData.name}</Text>
-                    {recommendedChain === chainData.id && (
-                      <Badge colorScheme="green" position="absolute" top="-2" right="-2">
-                        Önerilen
-                      </Badge>
-                    )}
-                  </VStack>
-                </Button>
-              ))}
-            </SimpleGrid>
-
-            {/* Bridge bilgisi */}
-            {showBridgeInfo && (
-              <Alert status="warning" mt={4}>
-                <AlertIcon />
-                <Box>
-                  <AlertTitle>Farklı Ağ Seçtiniz!</AlertTitle>
-                  <AlertDescription>
-                    <Text>
-                      Seçtiğiniz ağa geçiş yapmak için bridge kullanmanız gerekebilir. 
-                      Bu işlem ek ücretler gerektirebilir ve {
-                        SUPPORTED_CHAINS[chain?.id]?.bridgeInfo?.[`to${selectedChainId === 1 ? 'Eth' : 'Bsc'}`]?.estimatedTime
-                      } sürebilir.
-                    </Text>
-                    <Button
-                      as="a"
-                      href={SUPPORTED_CHAINS[chain?.id]?.bridgeInfo?.[`to${selectedChainId === 1 ? 'Eth' : 'Bsc'}`]?.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      size="sm"
-                      colorScheme="orange"
-                      mt={2}
-                      rightIcon={<ExternalLinkIcon />}
-                    >
-                      Bridge'e Git
-                    </Button>
-                  </AlertDescription>
-                </Box>
-              </Alert>
-            )}
-          </VStack>
-        )}
-
         {/* Ödeme butonu */}
-        {isConnected && paymentStep >= 2 && (
+        {isConnected && (
           <Button
             colorScheme="blue"
             size="lg"
